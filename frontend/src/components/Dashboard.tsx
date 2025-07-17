@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Users, Clock, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Users, Clock, TrendingUp, ChevronLeft, ChevronRight, X, Phone, MapPin } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import type { Reservation, Table } from '../../../shared/types';
 
@@ -10,6 +10,7 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({ reservations, tables }) => {
   const { t } = useLanguage();
+  const [selectedDay, setSelectedDay] = React.useState<string | null>(null);
 
   // Get current week dates
   const getCurrentWeekDates = () => {
@@ -65,6 +66,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ reservations, tables }) =>
     } else {
       return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     }
+  };
+
+  const getSelectedDayReservations = () => {
+    if (!selectedDay) return [];
+    return reservations.filter(r => r.date === selectedDay);
+  };
+
+  const getSelectedDayStats = () => {
+    const dayReservations = getSelectedDayReservations();
+    return {
+      totalReservations: dayReservations.length,
+      totalGuests: dayReservations.reduce((sum, r) => sum + r.partySize, 0),
+      confirmedCount: dayReservations.filter(r => r.status === 'confirmed').length,
+      seatedCount: dayReservations.filter(r => r.status === 'seated').length,
+      completedCount: dayReservations.filter(r => r.status === 'completed').length,
+      cancelledCount: dayReservations.filter(r => r.status === 'cancelled').length
+    };
+  };
+
+  const formatSelectedDayDate = () => {
+    if (!selectedDay) return '';
+    const date = new Date(selectedDay);
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
   };
 
   return (
@@ -138,11 +167,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ reservations, tables }) =>
             return (
               <div
                 key={date}
+                onClick={() => setSelectedDay(date)}
                 className={`p-2 sm:p-3 rounded-lg border-2 transition-colors ${
                   isToday 
                     ? 'border-blue-500 bg-blue-50' 
                     : 'border-gray-200 bg-gray-50'
-                }`}
+                } cursor-pointer hover:bg-gray-100 ${isToday ? 'hover:bg-blue-100' : ''}`}
               >
                 <div className="text-center">
                   <div className={`text-xs font-medium ${isToday ? 'text-blue-700' : 'text-gray-600'}`}>
@@ -163,6 +193,114 @@ export const Dashboard: React.FC<DashboardProps> = ({ reservations, tables }) =>
           })}
         </div>
       </div>
+
+      {/* Selected Day Modal */}
+      {selectedDay && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">
+                  {formatSelectedDayDate()}
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  {getSelectedDayStats().totalReservations} reservations • {getSelectedDayStats().totalGuests} guests
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedDay(null)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X size={20} className="text-gray-500" />
+              </button>
+            </div>
+
+            {/* Day Stats */}
+            <div className="p-6 border-b border-gray-200">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="text-center p-3 bg-blue-50 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">{getSelectedDayStats().confirmedCount}</div>
+                  <div className="text-xs text-blue-700">Confirmed</div>
+                </div>
+                <div className="text-center p-3 bg-green-50 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">{getSelectedDayStats().seatedCount}</div>
+                  <div className="text-xs text-green-700">Seated</div>
+                </div>
+                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                  <div className="text-2xl font-bold text-gray-600">{getSelectedDayStats().completedCount}</div>
+                  <div className="text-xs text-gray-700">Completed</div>
+                </div>
+                <div className="text-center p-3 bg-red-50 rounded-lg">
+                  <div className="text-2xl font-bold text-red-600">{getSelectedDayStats().cancelledCount}</div>
+                  <div className="text-xs text-red-700">Cancelled</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Reservations List */}
+            <div className="p-6">
+              <h4 className="text-lg font-semibold text-gray-800 mb-4">Reservations</h4>
+              <div className="space-y-3">
+                {getSelectedDayReservations().length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Calendar size={48} className="mx-auto mb-4 text-gray-300" />
+                    <p>No reservations for this day</p>
+                  </div>
+                ) : (
+                  getSelectedDayReservations()
+                    .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                    .map((reservation) => (
+                      <div key={reservation.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h5 className="font-semibold text-gray-900">{reservation.customer.name}</h5>
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                reservation.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                                reservation.status === 'seated' ? 'bg-green-100 text-green-800' :
+                                reservation.status === 'completed' ? 'bg-gray-100 text-gray-800' :
+                                reservation.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                'bg-orange-100 text-orange-800'
+                              }`}>
+                                {reservation.status}
+                              </span>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
+                              <div className="flex items-center gap-2">
+                                <Phone size={14} />
+                                <span>{reservation.customer.phone}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Users size={14} />
+                                <span>{reservation.partySize} {reservation.partySize === 1 ? 'person' : 'people'}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Clock size={14} />
+                                <span>{reservation.startTime} - {reservation.endTime}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <MapPin size={14} />
+                                <span>{reservation.tableIds.join(', ')}</span>
+                              </div>
+                            </div>
+
+                            {reservation.specialRequests && (
+                              <div className="mt-2 p-2 bg-blue-50 rounded text-sm text-blue-700">
+                                <strong>Special Requests:</strong> {reservation.specialRequests}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6">
         {/* Upcoming Reservations */}
