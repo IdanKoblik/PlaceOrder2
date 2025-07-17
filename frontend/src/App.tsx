@@ -180,7 +180,7 @@ function AppContent() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pb-20 sm:pb-8">
         {activeView === 'dashboard' && (
           <Dashboard reservations={reservations} tables={tables} />
         )}
@@ -213,7 +213,7 @@ function AppContent() {
       </main>
 
       {/* Mobile Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 pb-safe">
         <div className="grid grid-cols-4 gap-1">
           {navigation.map((item) => {
             const Icon = item.icon;
@@ -229,8 +229,8 @@ function AppContent() {
                     : 'text-gray-600'
                 }`}
               >
-                <Icon size={20} />
-                <span className="text-xs font-medium">{item.label}</span>
+                <Icon size={18} />
+                <span className="text-xs font-medium leading-tight">{item.label}</span>
                 {isLocked && (
                   <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></div>
                 )}
